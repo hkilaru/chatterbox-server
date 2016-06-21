@@ -1,11 +1,6 @@
+var messages = require('./messages.js').messages
 
-var messages = [
-  {
-    text: 'hola',
-    username: "anon",
-    objectId: 0
-  }
-]
+//***********************************************
 
 var idCounter = 1,
     statusCode;
