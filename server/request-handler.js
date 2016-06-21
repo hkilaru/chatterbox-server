@@ -11,16 +11,11 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
-var rooms = {all: []};
-
+var rooms = {"/": []};
+var querystring = require('querystring');
+var util = require('util');
 
 exports.requestHandler = function(request, response) {
-
-  var messageTemplate = {
-    username: null,
-    message: null,
-    roomname: null
-  }
 
   // Request and Response come from node's http module.
   //
@@ -40,7 +35,42 @@ exports.requestHandler = function(request, response) {
 
 
   // The outgoing status.
-  var statusCode = 200;
+  var statusCode = 200,
+      roomname = request.url,
+      endResult = {results: []};
+
+  function GET(){
+    if (!(roomname in rooms)){
+      statusCode = 404;
+    } else {
+      endResult.results = rooms[roomname];
+    }
+    var message = JSON.stringify(endResult);
+    response.end(message);
+  }
+
+  function POST(){
+    statusCode = 201
+    var decoded = "";
+    if (!(roomname in rooms)) {
+      rooms[roomname] = []
+    }
+    request.on('data', function(chunk) {
+      decoded += chunk;
+    })
+    request.on('end', function() {
+      var format = JSON.parse(decoded);
+
+      console.log('decoded', decoded);
+      console.log('format', format);
+
+      rooms[roomname].push(format);
+      rooms["/"].push(format);
+      console.log("Messages added: ", rooms[roomname]);
+      GET();
+    })
+  }
+
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
@@ -51,37 +81,12 @@ exports.requestHandler = function(request, response) {
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
 
-
-
-
-  console.log("request", request);
-  console.log("Method:", request.method);
-
-  // endResult.result = rooms.all
-
-  // function addToRoom(request) {
-  //   if(!roomname in rooms) {
-  //     rooms[roomname] = [];
-  //     rooms[roomname].push(request.body);
-  //   }
-  //   else {
-  //     rooms[roomname].push(request.body);
-  //   }
-  // }
-
-  var endResult = {results: []};
-
-  var roomname = request.url;
   if(request.method === "POST") {
-    if(!(roomname in rooms)) {
-      rooms[roomname] = [];
-    }
+    POST()
     console.log("post received");
-    rooms[roomname].push(request._postData);
-    statusCode = 201;
+  } else {
+    GET()
   }
-
-
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
@@ -94,9 +99,18 @@ exports.requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  endResult.result = rooms[roomname];
-  var message = JSON.stringify(endResult);
-  console.log(rooms);
+
+  // if(!rooms[roomname]) {
+  //   statusCode = 404;
+  //   endResult.results = rooms.all;
+  // } else {
+  //   endResult.results = rooms.roomname;
+  // }
+  // console.log(request.url);
+  // console.log(statusCode);
+  // console.log(endResult);
+  // console.log('rooms:', rooms);
+  message = JSON.stringify(endResult);
   response.end(message);
 };
 
