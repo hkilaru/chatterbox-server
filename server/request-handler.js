@@ -11,8 +11,17 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
+var rooms = {all: []};
 
-var requestHandler = function(request, response) {
+
+exports.requestHandler = function(request, response) {
+
+  var messageTemplate = {
+    username: null,
+    message: null,
+    roomname: null
+  }
+
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -29,17 +38,50 @@ var requestHandler = function(request, response) {
   // console.logs in your code.
   console.log("Serving request type " + request.method + " for url " + request.url);
 
+
   // The outgoing status.
   var statusCode = 200;
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
+  headers['Content-Type'] = "application/json";
 
   // Tell the client we are sending them plain text.
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = "text/plain";
+
+
+
+
+  console.log("request", request);
+  console.log("Method:", request.method);
+
+  // endResult.result = rooms.all
+
+  // function addToRoom(request) {
+  //   if(!roomname in rooms) {
+  //     rooms[roomname] = [];
+  //     rooms[roomname].push(request.body);
+  //   }
+  //   else {
+  //     rooms[roomname].push(request.body);
+  //   }
+  // }
+
+  var endResult = {results: []};
+
+  var roomname = request.url;
+  if(request.method === "POST") {
+    if(!(roomname in rooms)) {
+      rooms[roomname] = [];
+    }
+    console.log("post received");
+    rooms[roomname].push(request._postData);
+    statusCode = 201;
+  }
+
+
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
@@ -52,7 +94,10 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  response.end("Hello, World!");
+  endResult.result = rooms[roomname];
+  var message = JSON.stringify(endResult);
+  console.log(rooms);
+  response.end(message);
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
@@ -70,4 +115,3 @@ var defaultCorsHeaders = {
   "access-control-allow-headers": "content-type, accept",
   "access-control-max-age": 10 // Seconds.
 };
-
